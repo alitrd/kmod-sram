@@ -27,11 +27,14 @@ const char devfsname[]=SRAMNAME;
 
 static u32* sram_physaddr  = ((u32 *) SRAMBASE);
 static u32* sram_virtbase;
+static unsigned long sram_size = ((unsigned long) SRAMSIZE);
+static u32* mmu_physaddr  = ((u32 *) MMUBASE);
 static int opened=0;
 static int majornum;
 
 static int sram_read  (struct file *filp, char *buf, size_t count, loff_t *unused_loff_t);
 static int sram_write (struct file *filp, const char *buf, size_t count, loff_t *unused_loff_t);
+static loff_t sram_llseek  (struct file *filp, loff_t off, int whence);
 static int sram_open (struct inode *inode, struct file *filp);
 static int sram_release (struct inode *inode, struct file *filp);
 
@@ -39,52 +42,77 @@ static struct file_operations sram_fops = {
   owner   :   THIS_MODULE,
   read	  :   sram_read,
   write   :   sram_write,
+  llseek  :   sram_llseek,
   open    :   sram_open,
-  release : sram_release,
+  release :   sram_release,
 };
 
 MODULE_AUTHOR("Jochen Klein");
-MODULE_DESCRIPTION("sram module");
+MODULE_DESCRIPTION("SRAM module");
 MODULE_LICENSE("GPL");
 
-static int sram_read(struct file *filp, char *buf, size_t count, loff_t *unused_loff_t) {
-  sram_data_s sram_data;
+static int sram_read(struct file *filp, char *buf, size_t count, loff_t *unused_loff_t)
+{
+  unsigned long f_pos = filp->f_pos;
 
-  if (count != sizeof(sram_data_s)) {
-    printk(KERN_ERR "pio_read: wrong size\n");
-    return -EINVAL;
-  }
-  copy_from_user((unsigned char *) &sram_data, buf, sizeof(sram_data_s));
+  if (f_pos > sram_size)
+    return 0;
 
-  sram_data.in = readl(sram_virtbase + sram_data.adr);
-  unsigned long j = jiffies + 2;
-  while(jiffies < j); /*wait for one jiffie, 10ms*/
+  if (f_pos + count > sram_size)
+    count = sram_size - f_pos;
 
-  sram_data.in = readl(sram_virtbase + sram_data.adr);
+  copy_to_user(buf, (unsigned char *) sram_virtbase + f_pos, count);
 
-  copy_to_user(buf, (unsigned char *) &sram_data,sizeof(sram_data_s));
+  filp->f_pos += count;
   return count;
 }
 
 static int sram_write (struct file *filp, const char *buf, size_t count, loff_t *unused_loff_t)
 {
-  sram_data_s sram_data;
+  unsigned long f_pos = filp->f_pos;
 
-  if (count != sizeof(sram_data_s)) {
-    printk(KERN_ERR "sram_write: wrong size\n");
-    printk("count: %d,  datas: %d \n", count, sizeof(sram_data_s));
-    return -EINVAL;
-  }
-  copy_from_user((unsigned char *) &sram_data, buf, sizeof(sram_data_s));
+  if (f_pos > sram_size)
+    return 0;
 
-  writel(sram_data.out, sram_virtbase + sram_data.adr);
+  if (f_pos + count > sram_size)
+    count = sram_size - f_pos;
 
-  unsigned long j = jiffies + 2;
-  while(jiffies < j); /*wait for 10ms*/
+  copy_from_user((unsigned char *) sram_virtbase + filp->f_pos, buf, count);
 
+  filp->f_pos += count;
   return count;
 }
 
+loff_t sram_llseek  (struct file *filp, loff_t off, int whence)
+{
+  loff_t newpos;
+
+  switch (whence) {
+  case 0: /* SEEK_SET */
+    newpos = off;
+    break;
+
+  case 1: /* SEEK_CUR */
+    newpos = filp->f_pos + off;
+    break;
+
+  case 2: /* SEEK_END */
+    newpos = sram_size + off;
+    break;
+
+  default:
+    return -EINVAL;
+  }
+
+  if (newpos < 0)
+    return -EINVAL;
+
+  newpos %= sram_size;
+
+  filp->f_pos = newpos;
+
+  return newpos;
+}
 
 static int sram_open (struct inode *inode, struct file *filp)
 {
@@ -128,7 +156,13 @@ static int sram_init ()
                                      &sram_fops,
                                      NULL );
 
-  sram_virtbase  = (u32*) ioremap_nocache((u32)sram_physaddr,SRAMSIZE);
+  // CHECK: map SRAM to address space
+  u32* mmu_virtbase  = (u32*) ioremap_nocache((u32)mmu_physaddr, MMUSIZE);
+  mmu_virtbase[0x40] = 1;
+  iounmap((void*) mmu_virtbase);
+
+  // CHECK: remapping of SRAM
+  sram_virtbase  = (u32*) ioremap_nocache((u32)sram_physaddr, SRAMSIZE);
   opened=0;
   return 0;
 }

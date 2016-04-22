@@ -14,6 +14,9 @@ extern "C" {
 #define SRAMMAJO 0
 #define SRAMWIDTH 8
 
+#define MMUBASE ((void *) 0x80000080)
+#define MMUSIZE 0x0000003F
+
 #define SRAM_OUT_CH1 1
 #define SRAM_OUT_CH2 2
 #define SRAM_OUT_CH3 3

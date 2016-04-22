@@ -29,7 +29,6 @@ static u32* sram_physaddr  = ((u32 *) SRAMBASE);
 static u32* sram_virtbase;
 static unsigned long sram_size = ((unsigned long) SRAMSIZE);
 static u32* mmu_physaddr  = ((u32 *) MMUBASE);
-static int opened=0;
 static int majornum;
 
 static int sram_read  (struct file *filp, char *buf, size_t count, loff_t *unused_loff_t);
@@ -121,17 +120,15 @@ static int sram_open (struct inode *inode, struct file *filp)
     printk("Only minor 0 actual\n");
     return -ENODEV;
   }
-  if (opened)
+  if (MOD_IN_USE)
     return -EBUSY;
   MOD_INC_USE_COUNT;
-  opened=1;
   return 0;
 }
 
 static int sram_release (struct inode *inode, struct file *filp)
 {
   MOD_DEC_USE_COUNT;
-  opened=0;
   return 0;
 }
 
@@ -163,7 +160,6 @@ static int sram_init ()
 
   // CHECK: remapping of SRAM
   sram_virtbase  = (u32*) ioremap_nocache((u32)sram_physaddr, SRAMSIZE);
-  opened=0;
   return 0;
 }
 

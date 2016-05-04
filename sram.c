@@ -106,7 +106,7 @@ loff_t sram_llseek  (struct file *filp, loff_t off, int whence)
   if (newpos < 0)
     return -EINVAL;
 
-  newpos %= sram_size;
+  /* newpos %= sram_size; */
 
   filp->f_pos = newpos;
 
@@ -120,8 +120,8 @@ static int sram_open (struct inode *inode, struct file *filp)
     printk("Only minor 0 actual\n");
     return -ENODEV;
   }
-  if (MOD_IN_USE)
-    return -EBUSY;
+  /* if (MOD_IN_USE) */
+  /*   return -EBUSY; */
   MOD_INC_USE_COUNT;
   return 0;
 }
@@ -153,13 +153,15 @@ static int sram_init ()
                                      &sram_fops,
                                      NULL );
 
-  // CHECK: map SRAM to address space
+  // map SRAM to address space
   u32* mmu_virtbase  = (u32*) ioremap_nocache((u32)mmu_physaddr, MMUSIZE);
-  mmu_virtbase[0x40] = 1;
+  printk(KERN_INFO "mmap register: 0x%08x\n", mmu_virtbase[0x20]);
+  mmu_virtbase[0x90 / 4] = 0xa0000d01;
   iounmap((void*) mmu_virtbase);
 
-  // CHECK: remapping of SRAM
+  // remapping of SRAM
   sram_virtbase  = (u32*) ioremap_nocache((u32)sram_physaddr, SRAMSIZE);
+
   return 0;
 }
 

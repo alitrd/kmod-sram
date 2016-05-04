@@ -1,4 +1,4 @@
-KERNELDIR=/alice/trd/dcb/fw/linux-2.4.21
+KERNELDIR=/home/jkl/sram/dcb/linux-2.4.21
 
 CROSSCC = arm-linux-gcc
 CFLAGS  = -O -Wall
@@ -8,7 +8,7 @@ kobjects = sram.o
 
 all : $(kobjects)
 
-sram.o: sram.c
+sram.o: sram.c sram.h
 	$(CROSSCC) $(KCFLAGS) -c -o $@ $<
 
 clean:

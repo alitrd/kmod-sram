@@ -1,0 +1,8 @@
+cat << EOF > /etc/init.d/rc/rc_kmod_sram.sh
+#! /bin/sh
+
+# load kernel module
+insmod sram.o
+EOF
+
+chmod u+x /etc/init.d/rc/rc_kmod_sram.sh

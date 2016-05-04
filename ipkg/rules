@@ -1,0 +1,26 @@
+!/usr/bin/make -f
+
+DESTDIR=/tmp/sram
+PREFIX=/usr
+
+ARM_ROOTFS ?= /tmp/ipkg-rootfs
+.PHONY: Makefile configure
+
+Makefile:
+
+configure: Makefile
+
+build: configure
+	$(MAKE)
+
+clean:
+	$(MAKE) distclean
+
+install: build
+	rm -rf $(DESTDIR)
+	install -d $(DESTDIR)/lib/modules/2.4.21-rmk1-dcs1
+	install -t $(DESTDIR)/lib/modules/2.4.21-rmk1-dcs1 sram.o
+
+local-install: build
+	$(MAKE) DESTDIR=$(ARM_ROOTFS) install
+	rm -rf $(ARM_ROOTFS)/$(PREFIX)/lib/*.la

@@ -13,3 +13,7 @@ sram.o: sram.c sram.h
 
 clean:
 	rm -f $(kobjects)
+
+.PHONY: ipkg
+ipkg:
+	fakeroot ipkg-buildpackage

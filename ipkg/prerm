@@ -1,0 +1,1 @@
+rm /etc/init.d/rc/rc_kmod_sram.sh

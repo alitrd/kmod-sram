@@ -1,0 +1,9 @@
+Package: @PACKAGE_TARNAME@
+Priority: optional
+Version: @PACKAGE_VERSION@
+Architecture: arm
+Section: base
+Source: %{name}-%{version}.tar.gz
+Maintainer: @PACKAGE_BUGREPORT@
+Depends: kmod-sram
+Description: Kernel module to access SRAM-0 of DCS board
